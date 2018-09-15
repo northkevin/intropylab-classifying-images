@@ -34,7 +34,6 @@ def main():
     # collecting start time
     start_time = time()
     
-    # TODO: 2. Define get_input_args() function to create & retrieve command
     # line arguments
     in_arg = get_input_args()
     
