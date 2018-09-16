@@ -40,12 +40,12 @@ def main():
     # TODO: 3. Define get_pet_labels() function to create pet image labels by
     # creating a dictionary with key=filename and value=file label to be used
     # to check the accuracy of the classifier function
-    answers_dic = get_pet_labels()
+    answers_dic = get_pet_labels(in_arg.dir)
 
     # TODO: 4. Define classify_images() function to create the classifier 
     # labels with the classifier function uisng in_arg.arch, comparing the 
     # labels, and creating a dictionary of results (result_dic)
-    result_dic = classify_images()
+    result_dic = classify_images(in_arg.dir, answers_dic, in_arg.arch)
     
     # TODO: 5. Define adjust_results4_isadog() function to adjust the results
     # dictionary(result_dic) to determine if classifier correctly classified
@@ -105,7 +105,7 @@ def get_input_args():
     print("arg 1: {0}\narg 2: {1}\narg 3: {2}".format(args.dir, args.arch, args.dogfile))
     return args
 
-def get_pet_labels():
+def get_pet_labels(image_dir):
     """
     Creates a dictionary of pet labels based upon the filenames of the image 
     files. Reads in pet filenames and extracts the pet image labels from the 
@@ -118,10 +118,16 @@ def get_pet_labels():
      petlabels_dic - Dictionary storing image filename (as key) and Pet Image
                      Labels (as value)  
     """
-    pass
+    import re
+    regexp = re.compile(r'(.jpg)|\d+')
+    petlabels_dic = {}
+    for f in listdir(image_dir):
+        petlabels_dic[f] = " ".join(str(i) for i in f.split('_') if not regexp.search(i))
+    print(petlabels_dic)
+    return petlabels_dic
 
 
-def classify_images():
+def classify_images(images_dir, petlabel_dic, model):
     """
     Creates classifier labels with classifier function, compares labels, and 
     creates a dictionary containing both labels and comparison of them to be
@@ -146,9 +152,18 @@ def classify_images():
                     idx 2 = 1/0 (int)   where 1 = match between pet image and 
                     classifer labels and 0 = no match between labels
     """
-    pass
+    results_dic = {}
+    for k,v in petlabel_dic.items():
+        classifier_label = classifier("{0}/{1}".format(images_dir,k), model)
+        results_dic[k] = [v,classifier_label,match(classifier_label,v)]
+    print(results_dic)
+    return results_dic
 
-
+                          
+def match(classifier_names,label):
+    return 1 if label.lower() in classifier_names.lower().split(',') else 0
+                          
+                          
 def adjust_results4_isadog():
     """
     Adjusts the results dictionary to determine if classifier correctly 
