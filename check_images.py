@@ -55,11 +55,12 @@ def main():
     # TODO: 6. Define calculates_results_stats() function to calculate
     # results of run and puts statistics in a results statistics
     # dictionary (results_stats_dic)
-    results_stats_dic = calculates_results_stats()
+    results_stats_dic = calculates_results_stats(result_dic)
 
     # TODO: 7. Define print_results() function to print summary results, 
     # incorrect classifications of dogs and breeds if requested.
-    print_results()
+    print_results(result_dic, results_stats_dic, in_arg.arch, True, True)
+    
 
     # TODO: 1. Define end_time to measure total program runtime
     # by collecting end time
@@ -101,7 +102,7 @@ def get_input_args():
     parser.add_argument('--arch', choices=['vgg','alexnet','resnet'], type=str, metavar='str', help="CNN model architecture to use for image classification(default- pick any of the following vgg, alexnet, resnet)",default='vgg')
     parser.add_argument('--dogfile', type=str, metavar='str', help="Text file that contains all labels associated to dogs(default'dognames.txt'",default='dognames.txt')
     args = parser.parse_args()
-    print("arg 1: {0}\narg 2: {1}\narg 3: {2}".format(args.dir, args.arch, args.dogfile))
+#     print("arg 1: {0}\narg 2: {1}\narg 3: {2}".format(args.dir, args.arch, args.dogfile))
     return args
 
 def get_pet_labels(image_dir):
@@ -122,7 +123,7 @@ def get_pet_labels(image_dir):
     petlabels_dic = {}
     for f in listdir(image_dir):
         petlabels_dic[f] = " ".join(str(i) for i in f.split('_') if not regexp.search(i))
-    print(petlabels_dic)
+#     print(petlabels_dic)
     return petlabels_dic
 
 
@@ -155,7 +156,7 @@ def classify_images(images_dir, petlabel_dic, model):
     for k,v in petlabel_dic.items():
         classifier_label = classifier("{0}/{1}".format(images_dir,k), model)
         results_dic[k] = [v,classifier_label,match(classifier_label,v)]
-    print(results_dic)
+#     print(results_dic)
     return results_dic
 
                           
@@ -199,10 +200,10 @@ def adjust_results4_isadog(results_dic, dogsfile):
             v.append(1 if v[1].lower() in dogs else 0)
     except IOError as e:
         print(str(e))
-    print(results_dic)
+#     print(results_dic)
 
 
-def calculates_results_stats():
+def calculates_results_stats(results_dic):
     """
     Calculates statistics of the results of the run using classifier's model 
     architecture on classifying images. Then puts the results statistics in a 
@@ -226,10 +227,19 @@ def calculates_results_stats():
                      name (starting with 'pct' for percentage or 'n' for count)
                      and the value is the statistic's value 
     """
-    pass
+    results_stats = {}
+    results_stats['n_images'] = len(results_dic)
+    results_stats['n_dogs_img'] = sum(v[3] for k,v in results_dic.items())
+    results_stats['n_notdogs_img'] = sum(1 if v[3] == 0 else 0 for k,v in results_dic.items())
+    results_stats['pct_correct_dogs'] = round(len([v for k,v in results_dic.items() if v[3] == v[4] and v[4] == 1]) / float(results_stats['n_dogs_img'])) * 100
+    results_stats['pct_correct_notdogs'] = round(len([v for k,v in results_dic.items() if v[3] == v[4] and v[4] == 0]) / float(results_stats['n_notdogs_img'])) * 100
+    results_stats['pct_correct_breed'] = round(sum(v[2] for k,v in results_dic.items() if v[3] == v[4] and v[4] == 1) / float(results_stats['n_images'])) * 100
+    return results_stats
+    
+def num_notdogs(result):
+    return 1 if result[3] == 0 else 0
 
-
-def print_results():
+def print_results(results_dic, results_stats, model, print_incorrect_dogs, print_incorrect_breed):
     """
     Prints summary results on the classification and then prints incorrectly 
     classified dogs and incorrectly classified dog breeds if user indicates 
@@ -258,7 +268,86 @@ def print_results():
     Returns:
            None - simply printing results.
     """    
-    pass
+# Code for checking results_stats_dic -
+    # Checks calculations of counts & percentages BY using results_dic
+    # to re-calculate the values and then compare to the values
+    # in results_stats_dic
+    
+    # Initialize counters to zero and number of images total
+    n_images = len(results_dic)
+    n_pet_dog = 0
+    n_class_cdog = 0
+    n_class_cnotd = 0
+    n_match_breed = 0
+    
+    # Interates through results_dic dictionary to recompute the statistics
+    # outside of the calculates_results_stats() function
+    for key in results_dic:
+
+        # match (if dog then breed match)
+        if results_dic[key][2] == 1:
+
+            # isa dog (pet label) & breed match
+            if results_dic[key][3] == 1:
+                n_pet_dog += 1
+
+                # isa dog (classifier label) & breed match
+                if results_dic[key][4] == 1:
+                    n_class_cdog += 1
+                    n_match_breed += 1
+
+            # NOT dog (pet_label)
+            else:
+
+                # NOT dog (classifier label)
+                if results_dic[key][4] == 0:
+                    n_class_cnotd += 1
+
+        # NOT - match (not a breed match if a dog)
+        else:
+ 
+            # NOT - match
+            # isa dog (pet label) 
+            if results_dic[key][3] == 1:
+                n_pet_dog += 1
+
+                # isa dog (classifier label)
+                if results_dic[key][4] == 1:
+                    n_class_cdog += 1
+
+            # NOT dog (pet_label)
+            else:
+
+                # NOT dog (classifier label)
+                if results_dic[key][4] == 0:
+                    n_class_cnotd += 1
+
+                    
+    # calculates statistics based upon counters from above
+    n_pet_notd = n_images - n_pet_dog
+    pct_corr_dog = ( n_class_cdog / n_pet_dog )*100
+    pct_corr_notdog = ( n_class_cnotd / n_pet_notd )*100
+    pct_corr_breed = ( n_match_breed / n_pet_dog )*100
+    
+    # prints calculated statistics
+    print("\n ** Statistics from calculates_results_stats() function:")
+    print("N Images: %2d  N Dog Images: %2d  N NotDog Images: %2d \nPct Corr dog: %5.1f Pct Corr NOTdog: %5.1f  Pct Corr Breed: %5.1f"
+          % (results_stats['n_images'], results_stats['n_dogs_img'],
+             results_stats['n_notdogs_img'], results_stats['pct_correct_dogs'],
+             results_stats['pct_correct_notdogs'],
+             results_stats['pct_correct_breed']))
+    print("\n ** Check Statistics - calculated from this function as a check:")
+    print("N Images: %2d  N Dog Images: %2d  N NotDog Images: %2d \nPct Corr dog: %5.1f  Pct Corr NOTdog: %5.1f  Pct Corr Breed: %5.1f"
+          % (n_images, n_pet_dog, n_pet_notd, pct_corr_dog, pct_corr_notdog,
+             pct_corr_breed))
+    
+    if print_incorrect_dogs:
+        for dog in [v[0] for k,v in results_dic.items() if v[4] == 1 and v[3] == 0]:
+            print(dog)
+    if print_incorrect_breed:
+        for dog in [v[0] for k,v in results_dic.items() if v[3] == v[4] and v[4] == 1 and v[2] == 0]:
+            print(dog)
+        
 
                 
                 
