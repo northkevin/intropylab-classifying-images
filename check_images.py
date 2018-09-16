@@ -50,7 +50,7 @@ def main():
     # dictionary(result_dic) to determine if classifier correctly classified
     # images as 'a dog' or 'not a dog'. This demonstrates if the model can
     # correctly classify dog images as dogs (regardless of breed)
-    adjust_results4_isadog()
+    adjust_results4_isadog(result_dic, in_arg.dogfile)
 
     # TODO: 6. Define calculates_results_stats() function to calculate
     # results of run and puts statistics in a results statistics
@@ -163,7 +163,7 @@ def match(classifier_names,label):
     return 1 if label.lower() in classifier_names.lower().split(',') else 0
                           
                           
-def adjust_results4_isadog():
+def adjust_results4_isadog(results_dic, dogsfile):
     """
     Adjusts the results dictionary to determine if classifier correctly 
     classified images 'as a dog' or 'not a dog' especially when not a match. 
@@ -191,7 +191,15 @@ def adjust_results4_isadog():
     Returns:
            None - results_dic is mutable data type so no return needed.
     """           
-    pass
+    try:
+        with open(dogsfile) as f:
+            dogs = [dog.strip().lower() for dog in f.readlines()]
+        for k,v in results_dic.items():
+            v.append(1 if v[0].lower() in dogs else 0)
+            v.append(1 if v[1].lower() in dogs else 0)
+    except IOError as e:
+        print(str(e))
+    print(results_dic)
 
 
 def calculates_results_stats():
