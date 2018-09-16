@@ -1,3 +1,4 @@
 *.pyc
 *hints.py
+*hints.sh
 *.swp
